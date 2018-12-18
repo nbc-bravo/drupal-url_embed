@@ -149,6 +149,32 @@ class UrlEmbedDialog extends FormBase {
   /**
    * {@inheritdoc}
    */
+  public function validateForm(array &$form, FormStateInterface $form_state) {
+    // Fail validation if the user tries to use an URL that leads to empty
+    // embeddable content.
+    $valid = FALSE;
+    $url_element = $form_state->getValue('attributes');
+    try {
+      /** @var \Embed\Adapters\Adapter $info */
+      if (!empty($url_element['data-embed-url']) && $info = $this->urlEmbed()->getEmbed($url_element['data-embed-url'])) {
+        $embeddable_content = $info->getCode();
+        if (!empty($embeddable_content)) {
+          $valid = TRUE;
+        }
+      }
+    }
+    catch (\Exception $e) {
+      watchdog_exception('url_embed', $e);
+    }
+
+    if (!$valid) {
+      $form_state->setErrorByName('attributes', $this->t('The URL entered is invalid or it does not have an embeddable content.'));
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $response = new AjaxResponse();
 
